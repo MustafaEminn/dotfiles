@@ -1,5 +1,6 @@
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
+
   vim.fn.system({
     "git",
     "clone",
@@ -323,4 +324,6 @@ vim.wo.number = true
 
 
 vim.api.nvim_command([[autocmd FileType go setlocal tabstop=2 shiftwidth=2 expandtab]])
+ 
+vim.api.nvim_command([[autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')]])
 
