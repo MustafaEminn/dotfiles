@@ -320,3 +320,7 @@ vim.api.nvim_set_keymap('n', '<Leader>x', ':bp<bar>sp<bar>bn<bar>bd<CR>', { nore
 vim.api.nvim_set_keymap('n', '<Leader>p', ':BufferLineTogglePin<CR>', { noremap = true, silent = true })
 
 vim.wo.number = true
+
+
+vim.api.nvim_command([[autocmd FileType go setlocal tabstop=2 shiftwidth=2 expandtab]])
+
