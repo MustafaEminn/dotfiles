@@ -193,7 +193,7 @@ vim.keymap.set("n", "<leader>m", vim.diagnostic.open_float, { desc = "Show diagn
 vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix [L]ist" })
 
 vim.keymap.set("n", "<leader>qn", ":cnext<CR>", { desc = "[N]ext Quick List Result" })
-vim.keymap.set("n", "<leader>qb", ":cprev<CR>", { desc = "Move [B]ack Quick List Result" })
+vim.keymap.set("n", "<leader>qm", ":cprev<CR>", { desc = "[M]ove Previous Quick List Result" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
