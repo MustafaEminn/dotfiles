@@ -177,6 +177,7 @@ vim.opt.scrolloff = 10
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
+--
 
 -- Show explorer
 vim.keymap.set("n", "<leader>e", ":Explore<CR>", { noremap = true, silent = true })
@@ -189,7 +190,10 @@ vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Go to previous [D]iagnostic message" })
 vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagnostic message" })
 vim.keymap.set("n", "<leader>m", vim.diagnostic.open_float, { desc = "Show diagnostic error [M]essages" })
-vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
+vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix [L]ist" })
+
+vim.keymap.set("n", "<leader>qn", ":cnext<CR>", { desc = "[N]ext Quick List Result" })
+vim.keymap.set("n", "<leader>qb", ":cprev<CR>", { desc = "Move [B]ack Quick List Result" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
