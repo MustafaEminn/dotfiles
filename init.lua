@@ -141,8 +141,10 @@ vim.opt.breakindent = true
 vim.opt.undofile = true
 
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
-vim.opt.ignorecase = true
-vim.opt.smartcase = true
+-- vim.opt.ignorecase = true
+-- vim.opt.smartcase = true
+--
+vim.opt.grepprg = "rg --vimgrep --no-heading"
 
 -- Keep signcolumn on by default
 vim.opt.signcolumn = "yes"
@@ -376,6 +378,23 @@ require("lazy").setup({
 				--  All the info you're looking for is in `:help telescope.setup()`
 				--
 				defaults = {
+					layout_strategy = "flex",
+					layout_config = {
+						-- Configure 'flex' to behave like full screen
+						flex = {
+							flip_columns = 120, -- Flip to horizontal after this width
+						},
+						vertical = {
+							width = 0.95, -- Use 90% of the screen width in vertical mode
+							height = 0.99, -- Use 95% of the screen height in vertical mode
+							preview_height = 0.5, -- 50% of the layout height for preview
+						},
+						horizontal = {
+							width = 0.95, -- Use 90% of the screen width in horizontal mode
+							height = 0.99, -- Use 95% of the screen height in horizontal mode
+							preview_width = 0.6, -- 60% of the layout width for preview
+						},
+					},
 					mappings = {
 						i = { ["<c-enter>"] = "to_fuzzy_refine" },
 					},
@@ -389,6 +408,11 @@ require("lazy").setup({
 				-- 		"*.lock",
 				-- 	},
 				-- },
+				pickers = {
+					live_grep = {
+						path_display = { "tail" },
+					},
+				},
 				extensions = {
 					["ui-select"] = {
 						require("telescope.themes").get_dropdown(),
@@ -399,28 +423,78 @@ require("lazy").setup({
 			-- Enable Telescope extensions if they are installed
 			pcall(require("telescope").load_extension, "fzf")
 			pcall(require("telescope").load_extension, "ui-select")
-
+			--
 			-- See `:help telescope.builtin`
 			local builtin = require("telescope.builtin")
+
+			local function get_search_dirs()
+				local opts = nil
+
+				local sp = vim.api.nvim_get_var("SP") or ""
+
+				if sp ~= "" then
+					opts = { sp }
+				end
+
+				return opts
+			end
+
+			local function search_incasesensitive()
+				builtin.live_grep({
+					prompt_title = "Live Grep <Not Case Sensitive>",
+					search_dirs = get_search_dirs(),
+					additional_args = function()
+						return { "--ignore-case" }
+					end,
+				})
+			end
+
+			local function search_casesensitive()
+				builtin.live_grep({
+					prompt_title = "Live Grep <Case Sensitive>",
+					search_dirs = get_search_dirs(),
+					additional_args = function()
+						return { "--smart-case" }
+					end,
+				})
+			end
+
+			local function search_files()
+				builtin.find_files({
+					search_dirs = get_search_dirs(),
+				})
+			end
+
+			function set_search_path()
+				vim.ui.input({ prompt = "Search path: " }, function(input)
+					if input then
+						-- Only set SP if the user provided an input.
+						vim.api.nvim_set_var("SP", input)
+					end
+				end)
+			end
+
 			vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 			vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
-			vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
+			vim.keymap.set("n", "<leader>sf", search_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 			vim.keymap.set("n", "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
-			vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "[S]earch by [G]rep" })
+			vim.keymap.set("n", "<leader>sg", search_incasesensitive, { desc = "[S]earch by [G]rep" })
+			vim.keymap.set("n", "<leader>sp", set_search_path, { desc = "[S]earch set [P]ath" })
+			vim.keymap.set("n", "<leader>sG", search_casesensitive, { desc = "[S]earch by [G]rep Case Sensitive" })
 			vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
 			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "[ ] Find existing buffers" })
 
 			-- Slightly advanced example of overriding default behavior and theme
-			vim.keymap.set("n", "<leader>/", function()
+			vim.keymap.set("n", "<leader>f", function()
 				-- You can pass additional configuration to Telescope to change the theme, layout, etc.
 				builtin.current_buffer_fuzzy_find(require("telescope.themes").get_dropdown({
 					winblend = 10,
-					previewer = false,
+					previewer = true,
 				}))
-			end, { desc = "[/] Fuzzily search in current buffer" })
+			end, { desc = "[f] Fuzzily search in current buffer" })
 
 			-- It's also possible to pass additional configuration options.
 			--  See `:help telescope.builtin.live_grep()` for information about particular keys
@@ -596,14 +670,32 @@ require("lazy").setup({
 				jsonlint = {},
 				prettier = {},
 				prettierd = {},
-				somesass_ls = {},
+				somesass_ls = {
+					cmd = { "some-sass-language-server", "--stdio" },
+					filetypes = { "scss", "sass" },
+					name = "somesass_ls",
+					root_dir = require("lspconfig.util").root_pattern("package.json", ".git") or bufdir,
+					settings = {
+						somesass = {
+							suggestAllFromOpenDocument = true,
+						},
+					},
+					single_file_support = true,
+				},
 				stylelint = {},
 				stylua = {},
 				["ts-standard"] = {},
 
 				cssls = {},
 				cssmodules_ls = {},
-				["css-variables-language-server"] = {},
+				["css-variables-language-server"] = {
+					on_attach = function(client, bufnr)
+						-- Enable the CSS Variables Language Server for SCSS files
+						if vim.fn.expand("%:e") == "scss" then
+							client.server_capabilities.documentSymbolProvider = true
+						end
+					end,
+				},
 
 				lua_ls = {
 					-- cmd = {...},
@@ -657,12 +749,12 @@ require("lazy").setup({
 		lazy = false,
 		keys = {
 			{
-				"<leader>f",
+				"<leader>/",
 				function()
 					require("conform").format({ async = true, lsp_fallback = true })
 				end,
 				mode = "",
-				desc = "[F]ormat buffer",
+				desc = "[/] Format buffer",
 			},
 		},
 		opts = {
@@ -794,6 +886,7 @@ require("lazy").setup({
 					{ name = "nvim_lsp" },
 					{ name = "luasnip" },
 					{ name = "path" },
+					{ name = "sass-variables" },
 				},
 			})
 		end,
