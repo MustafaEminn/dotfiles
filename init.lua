@@ -262,6 +262,11 @@ require("lazy").setup({
 		end,
 	},
 
+	{
+		"tpope/vim-fugitive",
+		config = function() end,
+	},
+
 	-- NOTE: Plugins can also be added by using a table,
 	-- with the first argument being the link and the following
 	-- keys can be used to configure plugin behavior/loading/etc.
@@ -431,6 +436,7 @@ require("lazy").setup({
 			-- See `:help telescope.builtin`
 			local builtin = require("telescope.builtin")
 
+			-- delete buffer shortcut
 			local function get_search_dirs()
 				local opts = nil
 
@@ -448,7 +454,7 @@ require("lazy").setup({
 					prompt_title = "Live Grep <Not Case Sensitive>",
 					search_dirs = get_search_dirs(),
 					additional_args = function()
-						return { "--ignore-case" }
+						return { "--ignore-case", "--fixed-strings" }
 					end,
 				})
 			end
@@ -458,7 +464,7 @@ require("lazy").setup({
 					prompt_title = "Live Grep <Case Sensitive>",
 					search_dirs = get_search_dirs(),
 					additional_args = function()
-						return { "--smart-case" }
+						return { "--fixed-strings" }
 					end,
 				})
 			end
@@ -478,6 +484,27 @@ require("lazy").setup({
 				end)
 			end
 
+			local action_state = require("telescope.actions.state")
+			local actions = require("telescope.actions")
+
+			function search_buffers()
+				builtin.buffers({
+					attach_mappings = function(prompt_bufnr, map)
+						local delete_buf = function()
+							local selection = action_state.get_selected_entry()
+
+							actions.close(prompt_bufnr)
+
+							vim.api.nvim_buf_delete(selection.bufnr, { force = true })
+						end
+
+						map("i", "<C-x>", delete_buf)
+
+						return true
+					end,
+				})
+			end
+
 			vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 			vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
 			vim.keymap.set("n", "<leader>sf", search_files, { desc = "[S]earch [F]iles" })
@@ -488,6 +515,7 @@ require("lazy").setup({
 			vim.keymap.set("n", "<leader>sG", search_casesensitive, { desc = "[S]earch by [G]rep Case Sensitive" })
 			vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
+			vim.keymap.set("n", "<leader>sb", search_buffers, { desc = "[S]earch [B]uffers" })
 			vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
 			vim.keymap.set("n", "<leader><leader>", builtin.buffers, { desc = "[ ] Find existing buffers" })
 
