@@ -253,6 +253,49 @@ vim.opt.rtp:prepend(lazypath)
 --
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
+	{
+		"ThePrimeagen/harpoon",
+		branch = "harpoon2",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		config = function()
+			local harpoon = require("harpoon")
+
+			harpoon:setup({})
+
+			vim.keymap.set("n", "<leader>ha", function()
+				harpoon:list():add()
+			end, { desc = "[H]arpoon [A]dd" })
+
+			vim.keymap.set("n", "<leader>hs", function()
+				harpoon.ui:toggle_quick_menu(harpoon:list())
+			end, { desc = "[S]how [H]arpoon List" })
+
+			vim.keymap.set("n", "<leader>hh", function()
+				harpoon:list():select(1)
+			end, { desc = "Go to buffer 1" })
+
+			vim.keymap.set("n", "<leader>hj", function()
+				harpoon:list():select(2)
+			end, { desc = "Go to buffer 2" })
+
+			vim.keymap.set("n", "<leader>hk", function()
+				harpoon:list():select(3)
+			end, { desc = "Go to buffer 3" })
+
+			vim.keymap.set("n", "<leader>hl", function()
+				harpoon:list():select(4)
+			end, { desc = "Go to buffer 4" })
+
+			-- Toggle previous & next buffers stored within Harpoon list
+			vim.keymap.set("n", "<leader>hp", function()
+				harpoon:list():prev()
+			end, { desc = "[H]arpoon [P]revious" })
+
+			vim.keymap.set("n", "<leader>hn", function()
+				harpoon:list():next()
+			end, { desc = "[H]arpoon [N]ext" })
+		end,
+	},
 	-- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
 	"tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
 	{
