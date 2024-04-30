@@ -232,6 +232,18 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	end,
 })
 
+vim.api.nvim_create_autocmd({ "FileType" }, {
+	desc = "Define foldmethod with treesitter",
+	callback = function()
+		if require("nvim-treesitter.parsers").has_parser() then
+			vim.opt.foldmethod = "expr"
+			vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+		else
+			vim.opt.foldmethod = "syntax"
+		end
+	end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -318,6 +330,28 @@ require("lazy").setup({
 	--
 	--  This is equivalent to:
 	--    require('Comment').setup({})
+
+	{
+		"kevinhwang91/nvim-ufo",
+		dependencies = { "kevinhwang91/promise-async" },
+		config = function()
+			local ufo = require("ufo")
+
+			vim.o.foldcolumn = "1" -- '0' is not bad
+			vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+			vim.o.foldlevelstart = 99
+			vim.o.foldenable = true
+
+			vim.keymap.set("n", "zR", ufo.openAllFolds)
+			vim.keymap.set("n", "zM", ufo.closeAllFolds)
+
+			ufo.setup({
+				provider_selector = function(bufnr, filetype, buftype)
+					return { "treesitter", "indent" }
+				end,
+			})
+		end,
+	},
 
 	-- "gc" to comment visual regions/lines
 	{ "numToStr/Comment.nvim", opts = {} },
