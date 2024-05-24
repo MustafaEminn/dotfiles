@@ -147,6 +147,8 @@ vim.api.nvim_set_keymap(
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = "a"
 
+vim.opt.tabstop = 4
+
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
@@ -165,7 +167,7 @@ vim.opt.undofile = true
 -- vim.opt.ignorecase = true
 -- vim.opt.smartcase = true
 --
-vim.opt.grepprg = "rg --vimgrep --no-heading"
+-- vim.opt.grepprg = "rg --vimgrep --no-heading"
 
 -- Keep signcolumn on by default
 vim.opt.signcolumn = "yes"
@@ -505,6 +507,15 @@ require("lazy").setup({
 					mappings = {
 						i = { ["<c-enter>"] = "to_fuzzy_refine" },
 					},
+					vimgrep_arguments = {
+						"rg",
+						"--no-heading",
+						"--with-filename",
+						"--line-number",
+						"--column",
+						"--hidden",
+						"--no-ignore",
+					},
 				},
 				-- pickers = {}
 				-- defaults = {
@@ -516,6 +527,10 @@ require("lazy").setup({
 				-- 	},
 				-- },
 				pickers = {
+					find_files = {
+						hidden = true,
+						no_ignore = true,
+					},
 					live_grep = {
 						path_display = { "tail" },
 					},
@@ -562,7 +577,7 @@ require("lazy").setup({
 					prompt_title = "Live Grep <Case Sensitive>",
 					search_dirs = get_search_dirs(),
 					additional_args = function()
-						return { "--fixed-strings" }
+						return { "--fixed-strings", "--no-ignore", "--hidden" }
 					end,
 				})
 			end
@@ -912,6 +927,7 @@ require("lazy").setup({
 				javascriptreact = { { "prettierd", "prettier" } },
 				typescript = { { "prettierd", "prettier" } },
 				typescriptreact = { { "prettierd", "prettier" } },
+				go = { "goimports", "goimports-reviser", "gofmt", "golines", "gofumpt" },
 			},
 		},
 	},
@@ -1058,13 +1074,6 @@ require("lazy").setup({
 			--  - yinq - [Y]ank [I]nside [N]ext [']quote
 			--  - ci'  - [C]hange [I]nside [']quote
 			require("mini.ai").setup({ n_lines = 500 })
-
-			-- Add/delete/replace surroundings (brackets, quotes, etc.)
-			--
-			-- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-			-- - sd'   - [S]urround [D]elete [']quotes
-			-- - sr)'  - [S]urround [R]eplace [)] [']
-			require("mini.surround").setup()
 
 			-- Simple and easy statusline.
 			--  You could remove this setup call if you don't like it,
