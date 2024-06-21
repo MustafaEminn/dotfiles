@@ -93,6 +93,27 @@ vim.g.maplocalleader = " "
 -- Set to true if you have a Nerd Font installed
 vim.g.have_nerd_font = true
 
+-- Check if running in WSL
+local function is_wsl()
+	local wsl_env = os.getenv("WSLENV")
+	return wsl_env ~= nil
+end
+
+if is_wsl() then
+	vim.g.clipboard = {
+		name = "wsl-clip",
+		copy = {
+			["+"] = "clip.exe",
+			["*"] = "clip.exe",
+		},
+		paste = {
+			["+"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+			["*"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+		},
+		cache_enabled = 0,
+	}
+end
+
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
