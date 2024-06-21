@@ -93,6 +93,27 @@ vim.g.maplocalleader = " "
 -- Set to true if you have a Nerd Font installed
 vim.g.have_nerd_font = true
 
+-- Check if running in WSL
+local function is_wsl()
+	local wsl_env = os.getenv("WSLENV")
+	return wsl_env ~= nil
+end
+
+if is_wsl() then
+	vim.g.clipboard = {
+		name = "wsl-clip",
+		copy = {
+			["+"] = "clip.exe",
+			["*"] = "clip.exe",
+		},
+		paste = {
+			["+"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+			["*"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+		},
+		cache_enabled = 0,
+	}
+end
+
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
@@ -177,6 +198,12 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Check if the platform is Windows
+if vim.fn.has("win32") == 1 then
+	-- Set the netrw local copy command for Windows
+	vim.g.netrw_localcopycmd = "cmd.exe /c copy"
+end
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 --
@@ -196,6 +223,9 @@ vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diag
 
 vim.keymap.set("n", "<leader>qn", ":cnext<CR>", { desc = "[N]ext Quick List Result" })
 vim.keymap.set("n", "<leader>qm", ":cprev<CR>", { desc = "[M]ove Previous Quick List Result" })
+
+-- Show current file git log
+vim.keymap.set("n", "<leader>gl", ":Git log -- %:p<CR>", { desc = "[M]ove Previous Quick List Result" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -481,6 +511,7 @@ require("lazy").setup({
 							width = 0.95, -- Use 90% of the screen width in horizontal mode
 							height = 0.99, -- Use 95% of the screen height in horizontal mode
 							preview_width = 0.6, -- 60% of the layout width for preview
+							preview_cutoff = 0,
 						},
 					},
 					mappings = {
@@ -495,6 +526,7 @@ require("lazy").setup({
 						"--hidden",
 						"--no-ignore",
 					},
+					path_display = { "tail" },
 				},
 				{
 					-- pickers = {}
@@ -510,9 +542,6 @@ require("lazy").setup({
 					find_files = {
 						hidden = true,
 						no_ignore = true,
-					},
-					live_grep = {
-						path_display = { "tail" },
 					},
 				},
 				extensions = {
@@ -901,12 +930,12 @@ require("lazy").setup({
 				--
 				-- You can use a sub-list to tell conform to run *until* a formatter
 				-- is found.
-				css = { { "prettierd", "prettier" } },
-				json = { { "prettierd", "prettier" } },
-				javascript = { { "prettierd", "prettier" } },
-				javascriptreact = { { "prettierd", "prettier" } },
-				typescript = { { "prettierd", "prettier" } },
-				typescriptreact = { { "prettierd", "prettier" } },
+				css = { "prettierd", "prettier" },
+				json = { "prettierd", "prettier" },
+				javascript = { "prettierd", "prettier" },
+				javascriptreact = { "prettierd", "prettier" },
+				typescript = { "prettierd", "prettier" },
+				typescriptreact = { "prettierd", "prettier" },
 				go = { "goimports", "goimports-reviser", "gofmt", "golines", "gofumpt" },
 			},
 		},
@@ -1116,7 +1145,7 @@ require("lazy").setup({
 	--
 	-- require 'kickstart.plugins.debug',
 	-- require 'kickstart.plugins.indent_line',
-	-- require 'kickstart.plugins.lint',
+	require("kickstart.plugins.lint"),
 
 	-- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
 	--    This is the easiest way to modularize your config.
