@@ -496,15 +496,16 @@ require("lazy").setup({
 						"--no-ignore",
 					},
 				},
-				-- pickers = {}
-				-- defaults = {
-				-- 	file_ignore_patterns = {
-				-- 		"node_modules",
-				-- 		"dist",
-				-- 		"build",
-				-- 		"*.lock",
-				-- 	},
-				-- },
+				{
+					-- pickers = {}
+					-- defaults = {
+					file_ignore_patterns = {
+						"node_modules",
+						-- "dist",
+						-- "build",
+						-- "*.lock",
+					},
+				},
 				pickers = {
 					find_files = {
 						hidden = true,
