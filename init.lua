@@ -201,7 +201,7 @@ vim.opt.scrolloff = 10
 -- Check if the platform is Windows
 if vim.fn.has("win32") == 1 then
 	-- Set the netrw local copy command for Windows
-	vim.g.netrw_localcopycmd = "cmd.exe /c copy"
+	vim.g.netrw_localcopycmd = "C:\\Windows\\System32\\cmd.exe /c copy"
 end
 
 -- [[ Basic Keymaps ]]
