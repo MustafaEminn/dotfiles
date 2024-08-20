@@ -93,6 +93,27 @@ vim.g.maplocalleader = " "
 -- Set to true if you have a Nerd Font installed
 vim.g.have_nerd_font = true
 
+-- Check if running in WSL
+local function is_wsl()
+	local wsl_env = os.getenv("WSLENV")
+	return wsl_env ~= nil
+end
+
+if is_wsl() then
+	vim.g.clipboard = {
+		name = "wsl-clip",
+		copy = {
+			["+"] = "clip.exe",
+			["*"] = "clip.exe",
+		},
+		paste = {
+			["+"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+			["*"] = 'cmd.exe /c "powershell -Command ""& {Get-Clipboard -Raw}"""',
+		},
+		cache_enabled = 0,
+	}
+end
+
 -- [[ Setting options ]]
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
@@ -126,6 +147,8 @@ vim.api.nvim_set_keymap(
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = "a"
 
+vim.opt.tabstop = 4
+
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
@@ -144,7 +167,7 @@ vim.opt.undofile = true
 -- vim.opt.ignorecase = true
 -- vim.opt.smartcase = true
 --
-vim.opt.grepprg = "rg --vimgrep --no-heading"
+-- vim.opt.grepprg = "rg --vimgrep --no-heading"
 
 -- Keep signcolumn on by default
 vim.opt.signcolumn = "yes"
@@ -175,6 +198,12 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Check if the platform is Windows
+if vim.fn.has("win32") == 1 then
+	-- Set the netrw local copy command for Windows
+	vim.g.netrw_localcopycmd = "C:\\Windows\\System32\\cmd.exe /c copy"
+end
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 --
@@ -194,6 +223,9 @@ vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diag
 
 vim.keymap.set("n", "<leader>qn", ":cnext<CR>", { desc = "[N]ext Quick List Result" })
 vim.keymap.set("n", "<leader>qm", ":cprev<CR>", { desc = "[M]ove Previous Quick List Result" })
+
+-- Show current file git log
+vim.keymap.set("n", "<leader>gl", ":Git log -- %:p<CR>", { desc = "[M]ove Previous Quick List Result" })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -229,6 +261,18 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
 	callback = function()
 		vim.highlight.on_yank()
+	end,
+})
+
+vim.api.nvim_create_autocmd({ "FileType" }, {
+	desc = "Define foldmethod with treesitter",
+	callback = function()
+		if require("nvim-treesitter.parsers").has_parser() then
+			vim.opt.foldmethod = "expr"
+			vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+		else
+			vim.opt.foldmethod = "syntax"
+		end
 	end,
 })
 
@@ -318,6 +362,28 @@ require("lazy").setup({
 	--
 	--  This is equivalent to:
 	--    require('Comment').setup({})
+
+	{
+		"kevinhwang91/nvim-ufo",
+		dependencies = { "kevinhwang91/promise-async" },
+		config = function()
+			local ufo = require("ufo")
+
+			vim.o.foldcolumn = "1" -- '0' is not bad
+			vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+			vim.o.foldlevelstart = 99
+			vim.o.foldenable = true
+
+			vim.keymap.set("n", "zR", ufo.openAllFolds)
+			vim.keymap.set("n", "zM", ufo.closeAllFolds)
+
+			ufo.setup({
+				provider_selector = function(bufnr, filetype, buftype)
+					return { "treesitter", "indent" }
+				end,
+			})
+		end,
+	},
 
 	-- "gc" to comment visual regions/lines
 	{ "numToStr/Comment.nvim", opts = {} },
@@ -445,24 +511,37 @@ require("lazy").setup({
 							width = 0.95, -- Use 90% of the screen width in horizontal mode
 							height = 0.99, -- Use 95% of the screen height in horizontal mode
 							preview_width = 0.6, -- 60% of the layout width for preview
+							preview_cutoff = 0,
 						},
 					},
 					mappings = {
 						i = { ["<c-enter>"] = "to_fuzzy_refine" },
 					},
+					vimgrep_arguments = {
+						"rg",
+						"--no-heading",
+						"--with-filename",
+						"--line-number",
+						"--column",
+						"--hidden",
+						"--no-ignore",
+					},
+					path_display = { "tail" },
 				},
-				-- pickers = {}
-				-- defaults = {
-				-- 	file_ignore_patterns = {
-				-- 		"node_modules",
-				-- 		"dist",
-				-- 		"build",
-				-- 		"*.lock",
-				-- 	},
-				-- },
+				{
+					-- pickers = {}
+					-- defaults = {
+					file_ignore_patterns = {
+						"node_modules",
+						-- "dist",
+						-- "build",
+						-- "*.lock",
+					},
+				},
 				pickers = {
-					live_grep = {
-						path_display = { "tail" },
+					find_files = {
+						hidden = true,
+						no_ignore = true,
 					},
 				},
 				extensions = {
@@ -507,7 +586,7 @@ require("lazy").setup({
 					prompt_title = "Live Grep <Case Sensitive>",
 					search_dirs = get_search_dirs(),
 					additional_args = function()
-						return { "--fixed-strings" }
+						return { "--fixed-strings", "--no-ignore", "--hidden" }
 					end,
 				})
 			end
@@ -999,13 +1078,6 @@ require("lazy").setup({
 			--  - ci'  - [C]hange [I]nside [']quote
 			require("mini.ai").setup({ n_lines = 500 })
 
-			-- Add/delete/replace surroundings (brackets, quotes, etc.)
-			--
-			-- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-			-- - sd'   - [S]urround [D]elete [']quotes
-			-- - sr)'  - [S]urround [R]eplace [)] [']
-			require("mini.surround").setup()
-
 			-- Simple and easy statusline.
 			--  You could remove this setup call if you don't like it,
 			--  and try some other statusline plugin
@@ -1067,7 +1139,7 @@ require("lazy").setup({
 	--
 	-- require 'kickstart.plugins.debug',
 	-- require 'kickstart.plugins.indent_line',
-	-- require 'kickstart.plugins.lint',
+	require("kickstart.plugins.lint"),
 
 	-- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
 	--    This is the easiest way to modularize your config.
