@@ -209,7 +209,7 @@ end
 --
 
 -- Show explorer
-vim.keymap.set("n", "<leader>e", ":Explore<CR>", { noremap = true, silent = true })
+-- vim.keymap.set("n", "<leader>e", ":Explore<CR>", { noremap = true, silent = true })
 
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = true
@@ -297,6 +297,22 @@ vim.opt.rtp:prepend(lazypath)
 --
 -- NOTE: Here is where you install your plugins.
 require("lazy").setup({
+	{ -- Useful plugin to show you pending keybinds.
+		"folke/which-key.nvim",
+		event = "VimEnter", -- Sets the loading event to 'VimEnter'
+		config = function() -- This is the function that runs, AFTER loading
+			require("which-key").setup()
+
+			-- Document existing key chains
+			require("which-key").add({
+				{ "<leader>c", group = "[C]ode" },
+				{ "<leader>d", group = "[D]ocument" },
+				{ "<leader>r", group = "[R]ename" },
+				{ "<leader>s", group = "[S]earch" },
+				{ "<leader>w", group = "[W]orkspace" },
+			})
+		end,
+	},
 	{
 		"ThePrimeagen/harpoon",
 		branch = "harpoon2",
@@ -342,6 +358,34 @@ require("lazy").setup({
 	},
 	-- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
 	"tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
+	{
+		"nvim-tree/nvim-tree.lua",
+		config = function()
+			require("nvim-tree").setup({
+				view = {
+					width = 50,
+				},
+				git = {
+					enable = false,
+				},
+			})
+
+			vim.keymap.set("n", "<leader>e", function()
+				require("nvim-tree.api").tree.toggle()
+			end, { silent = true })
+
+			vim.keymap.set("n", "<leader>oc", function()
+				require("nvim-tree.api").tree.open({ find_file = true, focus = true })
+			end, { silent = true, desc = "[O]pen [C]urrent file in explorer" })
+
+			require("which-key").add({
+				{
+					{ "<leader>e", group = "[E]xplorer" },
+					{ "<leader>o", group = "[O]pen" },
+				},
+			})
+		end,
+	},
 	{
 		"m4xshen/autoclose.nvim",
 		config = function()
@@ -420,23 +464,6 @@ require("lazy").setup({
 	-- Then, because we use the `config` key, the configuration only runs
 	-- after the plugin has been loaded:
 	--  config = function() ... end
-
-	{ -- Useful plugin to show you pending keybinds.
-		"folke/which-key.nvim",
-		event = "VimEnter", -- Sets the loading event to 'VimEnter'
-		config = function() -- This is the function that runs, AFTER loading
-			require("which-key").setup()
-
-			-- Document existing key chains
-			require("which-key").add({
-				{ "<leader>c", group = "[C]ode" },
-				{ "<leader>d", group = "[D]ocument" },
-				{ "<leader>r", group = "[R]ename" },
-				{ "<leader>s", group = "[S]earch" },
-				{ "<leader>w", group = "[W]orkspace" },
-			})
-		end,
-	},
 
 	-- NOTE: Plugins can specify dependencies.
 	--
@@ -533,6 +560,7 @@ require("lazy").setup({
 					-- defaults = {
 					file_ignore_patterns = {
 						"node_modules",
+						"%.mjs",
 						-- "dist",
 						-- "build",
 						-- "*.lock",
@@ -991,9 +1019,9 @@ require("lazy").setup({
 				-- No, but seriously. Please read `:help ins-completion`, it is really good!
 				mapping = cmp.mapping.preset.insert({
 					-- Select the [n]ext item
-					["<C-n>"] = cmp.mapping.select_next_item(),
+					["<C-j>"] = cmp.mapping.select_next_item(),
 					-- Select the [p]revious item
-					["<C-p>"] = cmp.mapping.select_prev_item(),
+					["<C-k>"] = cmp.mapping.select_prev_item(),
 
 					-- Scroll the documentation window [b]ack / [f]orward
 					["<C-b>"] = cmp.mapping.scroll_docs(-4),
@@ -1008,6 +1036,7 @@ require("lazy").setup({
 					--  Generally you don't need this, because nvim-cmp will display
 					--  completions whenever it has completion options available.
 					["<C-Space>"] = cmp.mapping.complete({}),
+					["<C-b>"] = cmp.mapping.complete({}),
 
 					-- Think of <c-l> as moving to the right of your snippet expansion.
 					--  So if you have a snippet that's like:
