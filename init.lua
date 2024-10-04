@@ -523,6 +523,10 @@ require("lazy").setup({
 				--  All the info you're looking for is in `:help telescope.setup()`
 				--
 				defaults = {
+					path_display = { "smart" },
+					preview = {
+						filesize_limit = 0.5,
+					},
 					layout_strategy = "flex",
 					layout_config = {
 						-- Configure 'flex' to behave like full screen
@@ -553,18 +557,13 @@ require("lazy").setup({
 						"--hidden",
 						"--no-ignore",
 					},
-					path_display = { "tail" },
 				},
-				{
-					-- pickers = {}
-					-- defaults = {
-					file_ignore_patterns = {
-						"node_modules",
-						"%.mjs",
-						-- "dist",
-						-- "build",
-						-- "*.lock",
-					},
+				file_ignore_patterns = {
+					"node_modules",
+					"%.mjs",
+					-- "dist",
+					-- "build",
+					-- "*.lock",
 				},
 				pickers = {
 					find_files = {
