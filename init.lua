@@ -221,8 +221,8 @@ vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagn
 vim.keymap.set("n", "<leader>m", vim.diagnostic.open_float, { desc = "Show diagnostic error [M]essages" })
 vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix [L]ist" })
 
-vim.keymap.set("n", "<leader>qn", ":cnext<CR>", { desc = "[N]ext Quick List Result" })
-vim.keymap.set("n", "<leader>qm", ":cprev<CR>", { desc = "[M]ove Previous Quick List Result" })
+vim.keymap.set("n", "<leader>qn", ":lnext<CR>", { desc = "[N]ext Quick List Result" })
+vim.keymap.set("n", "<leader>qm", ":lprev<CR>", { desc = "[M]ove Previous Quick List Result" })
 
 -- Show current file git log
 vim.keymap.set("n", "<leader>gl", ":Git log -- %:p<CR>", { desc = "[M]ove Previous Quick List Result" })
