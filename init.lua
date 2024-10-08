@@ -120,29 +120,16 @@ end
 --  For more options, you can see `:help option-list`
 
 -- Make line numbers default
---[[ vim.opt.number = true ]]
+vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
 vim.opt.relativenumber = true
 
--- Define a function to open an i3 window in the project directory
-function open_i3_window_in_project_directory()
-	-- Get the current working directory of the buffer
-	local project_dir = vim.fn.getcwd()
-
-	local kitty_path = vim.fn.system("which kitty")
-
-	-- Execute i3-msg command to open a new window in the project directory
-	vim.fn.system(string.format("i3-msg exec %s %s", kitty_path, project_dir))
-end
-
--- Map a keybinding to call the function
-vim.api.nvim_set_keymap(
-	"n",
-	"<leader>i",
-	":lua open_i3_window_in_project_directory()<CR>",
-	{ noremap = true, silent = true, desc = "Create Terminal" }
-)
+-- Turkish layout macros
+vim.keymap.set("i", "<C-ı>", "{", { noremap = true })
+vim.keymap.set("i", "<C-o>", "}", { noremap = true })
+vim.keymap.set("i", "<C-ğ>", "[", { noremap = true })
+vim.keymap.set("i", "<C-ü>", "]", { noremap = true })
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = "a"
@@ -1196,6 +1183,5 @@ require("lazy").setup({
 		},
 	},
 })
-
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
