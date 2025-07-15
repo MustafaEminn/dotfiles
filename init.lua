@@ -208,8 +208,29 @@ vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagn
 vim.keymap.set("n", "<leader>m", vim.diagnostic.open_float, { desc = "Show diagnostic error [M]essages" })
 vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix [L]ist" })
 
-vim.keymap.set("n", "<leader>qn", ":lnext<CR>", { desc = "[N]ext Quick List Result" })
-vim.keymap.set("n", "<leader>qm", ":lprev<CR>", { desc = "[M]ove Previous Quick List Result" })
+local function move(next)
+	return function()
+		local win_id = vim.api.nvim_get_current_win()
+		local loc_list = vim.fn.getloclist(win_id, { quickfix = 1 })
+
+		if loc_list.quickfix == 0 then
+			if next then
+				vim.cmd("lnext")
+			else
+				vim.cmd("lprev")
+			end
+		else
+			if next then
+				vim.cmd("cnext")
+			else
+				vim.cmd("cprev")
+			end
+		end
+	end
+end
+
+vim.keymap.set("n", "<leader>qn", move(true), { desc = "[N]ext Quick List Result" })
+vim.keymap.set("n", "<leader>qm", move(false), { desc = "[M]ove Previous Quick List Result" })
 
 -- Show current file git log
 vim.keymap.set("n", "<leader>gl", ":Git log -- %:p<CR>", { desc = "[M]ove Previous Quick List Result" })
@@ -354,6 +375,13 @@ require("lazy").setup({
 				},
 				git = {
 					enable = false,
+				},
+				actions = {
+					open_file = {
+						window_picker = {
+							enable = false,
+						},
+					},
 				},
 			})
 

@@ -51,7 +51,9 @@ return {
 			vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
 				group = lint_augroup,
 				callback = function()
-					require("lint").try_lint()
+					vim.defer_fn(function()
+						require("lint").try_lint()
+					end, 400) -- Delay linting by 100 milliseconds
 				end,
 			})
 		end,
