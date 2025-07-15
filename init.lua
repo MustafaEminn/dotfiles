@@ -618,7 +618,13 @@ require("lazy").setup({
 					prompt_title = "Live Grep <Not Case Sensitive>",
 					search_dirs = get_search_dirs(),
 					additional_args = function()
-						return { "--ignore-case", "--fixed-strings" }
+						return {
+							"--ignore-case",
+							"--fixed-strings",
+							"--hidden",
+							"--glob",
+							"!*.min.js",
+						}
 					end,
 				})
 			end
