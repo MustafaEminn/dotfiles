@@ -572,53 +572,125 @@ require("lazy").setup({
 			-- See `:help telescope.builtin`
 			local builtin = require("telescope.builtin")
 
-			-- delete buffer shortcut
-			local function get_search_dirs()
-				local opts = nil
+      -- Function to load patterns from project directory
+      local function load_patterns()
+        local cwd = vim.fn.getcwd()
+        local include_file = cwd .. '/.nvim_telescope_include'
+        local exclude_file = cwd .. '/.nvim_telescope_exclude'
 
-				local sp = vim.api.nvim_get_var("SP") or ""
+        if vim.fn.filereadable(include_file) == 1 then
+          local lines = vim.fn.readfile(include_file)
+          vim.g.SP_INCLUDE = lines[1] or ""
+        else
+          vim.g.SP_INCLUDE = ""
+        end
 
-				if sp ~= "" then
-					opts = { sp }
-				end
+        if vim.fn.filereadable(exclude_file) == 1 then
+          local lines = vim.fn.readfile(exclude_file)
+          vim.g.SP_EXCLUDE = lines[1] or ""
+        else
+          vim.g.SP_EXCLUDE = ""
+        end
+      end
 
-				return opts
-			end
+      -- Autocmd to load patterns when directory changes
+      vim.api.nvim_create_autocmd("DirChanged", {
+        pattern = "*",
+        callback = load_patterns,
+      })
 
-			local function search_incasesensitive()
-				builtin.live_grep({
-					prompt_title = "Live Grep <Not Case Sensitive>",
-					search_dirs = get_search_dirs(),
-					additional_args = function()
-						return { "--ignore-case", "--fixed-strings" }
-					end,
-				})
-			end
+      -- Initial load
+      load_patterns()
 
-			local function search_casesensitive()
-				builtin.live_grep({
-					prompt_title = "Live Grep <Case Sensitive>",
-					search_dirs = get_search_dirs(),
-					additional_args = function()
-						return { "--fixed-strings", "--no-ignore", "--hidden" }
-					end,
-				})
-			end
+      -- Function to process include and exclude patterns
+      local function get_search_dirs()
+        local opts = {}
+        local sp_include = vim.g.SP_INCLUDE or ""
+        local sp_exclude = vim.g.SP_EXCLUDE or ""
 
-			local function search_files()
-				builtin.find_files({
-					search_dirs = get_search_dirs(),
-				})
-			end
+        if sp_include ~= "" then
+          opts.search_dirs = vim.split(sp_include, ",")
+        end
 
-			function set_search_path()
-				vim.ui.input({ prompt = "Search path: " }, function(input)
-					if input then
-						-- Only set SP if the user provided an input.
-						vim.api.nvim_set_var("SP", input)
-					end
-				end)
-			end
+        if sp_exclude ~= "" then
+          opts.file_ignore_patterns = vim.split(sp_exclude, ",")
+        end
+
+        -- Add vimgrep_arguments for include/exclude patterns
+        opts.vimgrep_arguments = {
+          "rg",
+          "--color=never",
+          "--no-heading",
+          "--with-filename",
+          "--line-number",
+          "--column",
+          "--smart-case",
+          "--hidden",
+        }
+
+        if sp_include ~= "" then
+          for _, pattern in ipairs(vim.split(sp_include, ",")) do
+            table.insert(opts.vimgrep_arguments, "--glob")
+            table.insert(opts.vimgrep_arguments, pattern)
+          end
+        end
+
+        if sp_exclude ~= "" then
+          for _, pattern in ipairs(vim.split(sp_exclude, ",")) do
+            table.insert(opts.vimgrep_arguments, "--glob")
+            table.insert(opts.vimgrep_arguments, "!" .. pattern)
+          end
+        end
+
+        return opts
+      end
+      -- Case-insensitive search
+      local function search_incasesensitive()
+        local opts = get_search_dirs()
+        opts.prompt_title = "Live Grep <Not Case Sensitive>"
+        opts.additional_args = function()
+          return { "--ignore-case", "--fixed-strings" }
+        end
+        builtin.live_grep(opts)
+      end
+
+      local function search_casesensitive()
+        local opts = get_search_dirs()
+        opts.prompt_title = "Live Grep <Case Sensitive>"
+        opts.additional_args = function()
+          return { "--fixed-strings", "--no-ignore", "--hidden" }
+        end
+        builtin.live_grep(opts)
+      end
+
+      local function search_files()
+        local opts = get_search_dirs()
+        builtin.find_files(opts)
+      end
+
+      -- Set include patterns and save to project
+      function set_include_path()
+        vim.ui.input({ prompt = "Include patterns (e.g., *.lua,*.js): ", default = vim.g.SP_INCLUDE }, function(input)
+          if input ~= nil then
+            vim.g.SP_INCLUDE = input
+            local cwd = vim.fn.getcwd()
+            vim.fn.writefile({vim.g.SP_INCLUDE}, cwd .. '/.nvim_telescope_include')
+            print("Include patterns updated and saved")
+          end
+        end)
+      end
+
+      -- Set exclude patterns and save to project
+      function set_exclude_path()
+        vim.ui.input({ prompt = "Exclude patterns (e.g., *.min.js,dist/*): ", default = vim.g.SP_EXCLUDE }, function(input)
+          if input ~= nil then
+            vim.g.SP_EXCLUDE = input
+            local cwd = vim.fn.getcwd()
+            vim.fn.writefile({vim.g.SP_EXCLUDE}, cwd .. '/.nvim_telescope_exclude')
+            print("Exclude patterns updated and saved")
+          end
+        end)
+      end
 
 			local action_state = require("telescope.actions.state")
 			local actions = require("telescope.actions")
@@ -641,13 +713,14 @@ require("lazy").setup({
 				})
 			end
 
+			vim.keymap.set("n", "<leader>spi", set_include_path, { desc = "[S]earch set [P]ath [I]nclude" })
+			vim.keymap.set("n", "<leader>spe", set_exclude_path, { desc = "[S]earch set [P]ath [E]xclude" })
 			vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 			vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
 			vim.keymap.set("n", "<leader>sf", search_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 			vim.keymap.set("n", "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
 			vim.keymap.set("n", "<leader>sg", search_incasesensitive, { desc = "[S]earch by [G]rep" })
-			vim.keymap.set("n", "<leader>sp", set_search_path, { desc = "[S]earch set [P]ath" })
 			vim.keymap.set("n", "<leader>sG", search_casesensitive, { desc = "[S]earch by [G]rep Case Sensitive" })
 			vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
