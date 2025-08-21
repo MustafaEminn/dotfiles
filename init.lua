@@ -203,8 +203,8 @@ vim.opt.hlsearch = true
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Diagnostic keymaps
-vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Go to previous [D]iagnostic message" })
-vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagnostic message" })
+vim.keymap.set("n", "<leader>N", vim.diagnostic.goto_prev, { desc = "Go to previous [D]iagnostic message" })
+vim.keymap.set("n", "<leader>n", vim.diagnostic.goto_next, { desc = "Go to next [D]iagnostic message" })
 vim.keymap.set("n", "<leader>m", vim.diagnostic.open_float, { desc = "Show diagnostic error [M]essages" })
 vim.keymap.set("n", "<leader>ql", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix [L]ist" })
 
@@ -544,127 +544,351 @@ require("lazy").setup({
 
 			-- [[ Configure Telescope ]]
 			-- See `:help telescope` and `:help telescope.setup()`
-			require("telescope").setup({
-				-- You can put your default mappings / updates / etc. in here
-				--  All the info you're looking for is in `:help telescope.setup()`
-				--
-				defaults = {
-					path_display = { "smart" },
-					preview = {
-						filesize_limit = 0.5,
-					},
-					layout_strategy = "flex",
-					layout_config = {
-						-- Configure 'flex' to behave like full screen
-						flex = {
-							flip_columns = 120, -- Flip to horizontal after this width
-						},
-						vertical = {
-							width = 0.95, -- Use 90% of the screen width in vertical mode
-							height = 0.99, -- Use 95% of the screen height in vertical mode
-							preview_height = 0.5, -- 50% of the layout height for preview
-						},
-						horizontal = {
-							width = 0.95, -- Use 90% of the screen width in horizontal mode
-							height = 0.99, -- Use 95% of the screen height in horizontal mode
-							preview_width = 0.6, -- 60% of the layout width for preview
-							preview_cutoff = 0,
-						},
-					},
-					mappings = {
-						i = { ["<c-enter>"] = "to_fuzzy_refine" },
-					},
-					vimgrep_arguments = {
-						"rg",
-						"--no-heading",
-						"--with-filename",
-						"--line-number",
-						"--column",
-						"--hidden",
-						"--no-ignore",
-					},
-				},
-				file_ignore_patterns = {
-					"node_modules",
-					"%.mjs",
-					-- "dist",
-					-- "build",
-					-- "*.lock",
-				},
-				pickers = {
-					find_files = {
-						hidden = true,
-						no_ignore = true,
-					},
-				},
-				extensions = {
-					["ui-select"] = {
-						require("telescope.themes").get_dropdown(),
-					},
-				},
-			})
+      -- Telescope configuration with reliable include/exclude functionality
+      require("telescope").setup({
+        defaults = {
+          path_display = { "smart" },
+          preview = {
+            filesize_limit = 0.5,
+          },
+          layout_strategy = "flex",
+          layout_config = {
+            flex = {
+              flip_columns = 120,
+            },
+            vertical = {
+              width = 0.95,
+              height = 0.99,
+              preview_height = 0.5,
+            },
+            horizontal = {
+              width = 0.95,
+              height = 0.99,
+              preview_width = 0.6,
+              preview_cutoff = 0,
+            },
+          },
+          mappings = {
+            i = { ["<c-enter>"] = "to_fuzzy_refine" },
+          },
+          -- Default vimgrep arguments
+          vimgrep_arguments = {
+            "rg",
+            "--color=never",
+            "--no-heading",
+            "--with-filename",
+            "--line-number",
+            "--column",
+            "--smart-case",
+            "--hidden",
+            "--follow",
+            -- Default excludes (can be overridden)
+            "--glob=!.git/*",
+            "--glob=!node_modules/*",
+            "--glob=!*.lock",
+          },
+        },
+        pickers = {
+          find_files = {
+            hidden = true,
+            -- Use fd if available for better performance
+            find_command = { "fdfind", "--type", "f", "--hidden", "--follow", "--exclude", ".git" },
+          },
+        },
+        extensions = {
+          ["ui-select"] = {
+            require("telescope.themes").get_dropdown(),
+          },
+        },
+      })
 
-			-- Enable Telescope extensions if they are installed
-			pcall(require("telescope").load_extension, "fzf")
-			pcall(require("telescope").load_extension, "ui-select")
-			--
-			-- See `:help telescope.builtin`
-			local builtin = require("telescope.builtin")
+      -- Enable Telescope extensions if they are installed
+      pcall(require("telescope").load_extension, "fzf")
+      pcall(require("telescope").load_extension, "ui-select")
 
-			-- delete buffer shortcut
-			local function get_search_dirs()
-				local opts = nil
+      local builtin = require("telescope.builtin")
 
-				local sp = vim.api.nvim_get_var("SP") or ""
+      -- Configuration module for include/exclude patterns
+      local M = {}
 
-				if sp ~= "" then
-					opts = { sp }
-				end
+      -- Store patterns in memory
+      M.patterns = {
+        include_dirs = {},
+        include_files = {},
+        exclude_dirs = {},
+        exclude_files = {},
+      }
 
-				return opts
-			end
+      -- Function to load patterns from project configuration files
+      M.load_patterns = function()
+        local cwd = vim.fn.getcwd()
+        local config_file = cwd .. '/.telescope_config.json'
+        
+        -- Try to load JSON config if it exists
+        if vim.fn.filereadable(config_file) == 1 then
+          local content = vim.fn.readfile(config_file)
+          local ok, config = pcall(vim.json.decode, table.concat(content, "\n"))
+          if ok and config then
+            M.patterns = vim.tbl_deep_extend("force", M.patterns, config)
+          end
+        else
+          -- Fallback to old-style files for backward compatibility
+          local include_file = cwd .. '/.nvim_telescope_include'
+          local exclude_file = cwd .. '/.nvim_telescope_exclude'
+          
+          if vim.fn.filereadable(include_file) == 1 then
+            local lines = vim.fn.readfile(include_file)
+            if lines[1] then
+              M.patterns.include_files = vim.split(lines[1], ",")
+            end
+          end
+          
+          if vim.fn.filereadable(exclude_file) == 1 then
+            local lines = vim.fn.readfile(exclude_file)
+            if lines[1] then
+              M.patterns.exclude_files = vim.split(lines[1], ",")
+            end
+          end
+        end
+      end
 
-			local function search_incasesensitive()
-				builtin.live_grep({
-					prompt_title = "Live Grep <Not Case Sensitive>",
-					search_dirs = get_search_dirs(),
-					additional_args = function()
-						return {
-							"--ignore-case",
-							"--fixed-strings",
-							"--hidden",
-							"--glob",
-							"!*.min.js",
-						}
-					end,
-				})
-			end
+      -- Function to save patterns to project configuration
+      M.save_patterns = function()
+        local cwd = vim.fn.getcwd()
+        local config_file = cwd .. '/.telescope_config.json'
+        
+        local content = vim.json.encode(M.patterns)
+        vim.fn.writefile(vim.split(content, "\n"), config_file)
+        print("Telescope configuration saved to " .. config_file)
+      end
 
-			local function search_casesensitive()
-				builtin.live_grep({
-					prompt_title = "Live Grep <Case Sensitive>",
-					search_dirs = get_search_dirs(),
-					additional_args = function()
-						return { "--fixed-strings", "--no-ignore", "--hidden" }
-					end,
-				})
-			end
+      -- Build ripgrep arguments from patterns
+      M.build_rg_args = function()
+        local args = {
+          "rg",
+          "--color=never",
+          "--no-heading",
+          "--with-filename",
+          "--line-number",
+          "--column",
+          "--smart-case",
+          "--hidden",
+          "--follow",
+        }
+        
+        -- Add exclude patterns for directories
+        for _, pattern in ipairs(M.patterns.exclude_dirs or {}) do
+          table.insert(args, "--glob")
+          table.insert(args, "!" .. pattern)
+        end
+        
+        -- Add exclude patterns for files
+        for _, pattern in ipairs(M.patterns.exclude_files or {}) do
+          table.insert(args, "--glob")
+          table.insert(args, "!" .. pattern)
+        end
+        
+        -- Add include patterns for files (if specified)
+        for _, pattern in ipairs(M.patterns.include_files or {}) do
+          table.insert(args, "--glob")
+          table.insert(args, pattern)
+        end
+        
+        return args
+      end
 
-			local function search_files()
-				builtin.find_files({
-					search_dirs = get_search_dirs(),
-				})
-			end
+      -- Build fd arguments for find_files
+      M.build_fd_args = function()
+        local args = { "fdfind", "--type", "f", "--hidden", "--follow" }
+        
+        -- Add exclude patterns
+        for _, pattern in ipairs(M.patterns.exclude_dirs or {}) do
+          table.insert(args, "--exclude")
+          table.insert(args, pattern)
+        end
+        
+        for _, pattern in ipairs(M.patterns.exclude_files or {}) do
+          table.insert(args, "--exclude")
+          table.insert(args, pattern)
+        end
+        
+        -- Add include patterns (fd uses glob patterns)
+        local globs = {}
+        for _, pattern in ipairs(M.patterns.include_files or {}) do
+          table.insert(globs, "--glob")
+          table.insert(globs, pattern)
+        end
+        
+        -- Append globs at the end
+        for _, glob in ipairs(globs) do
+          table.insert(args, glob)
+        end
+        
+        return args
+      end
 
-			function set_search_path()
-				vim.ui.input({ prompt = "Search path: " }, function(input)
-					if input then
-						-- Only set SP if the user provided an input.
-						vim.api.nvim_set_var("SP", input)
-					end
-				end)
-			end
+      -- Get search options with include/exclude patterns
+      M.get_search_opts = function(base_opts)
+        local opts = base_opts or {}
+        
+        -- Set search directories if specified
+        if #M.patterns.include_dirs > 0 then
+          opts.search_dirs = M.patterns.include_dirs
+        end
+        
+        -- Build ripgrep arguments
+        opts.vimgrep_arguments = M.build_rg_args()
+        
+        -- Build file ignore patterns for telescope
+        local ignore_patterns = {}
+        for _, pattern in ipairs(M.patterns.exclude_files or {}) do
+          -- Convert glob patterns to lua patterns for telescope
+          local lua_pattern = pattern:gsub("%*", ".*"):gsub("%?", ".")
+          table.insert(ignore_patterns, lua_pattern)
+        end
+        
+        if #ignore_patterns > 0 then
+          opts.file_ignore_patterns = ignore_patterns
+        end
+        
+        return opts
+      end
 
+      -- Get find_files options
+      M.get_find_files_opts = function(base_opts)
+        local opts = base_opts or {}
+        
+        -- Use fd if available
+        if vim.fn.executable("fd") == 1 then
+          opts.find_command = M.build_fd_args()
+        else
+          -- Fallback to telescope defaults with ignore patterns
+          opts = M.get_search_opts(opts)
+        end
+        
+        -- Set search directories if specified
+        if #M.patterns.include_dirs > 0 then
+          opts.search_dirs = M.patterns.include_dirs
+        end
+        
+        return opts
+      end
+
+      -- Autocmd to load patterns when directory changes
+      vim.api.nvim_create_autocmd("DirChanged", {
+        pattern = "*",
+        callback = M.load_patterns,
+      })
+
+      -- Initial load
+      M.load_patterns()
+
+      -- Search functions
+      M.search_incasesensitive = function()
+        local opts = M.get_search_opts({
+          prompt_title = "Live Grep (Case Insensitive)",
+          additional_args = function()
+            return { "--ignore-case" }
+          end
+        })
+        builtin.live_grep(opts)
+      end
+
+      M.search_casesensitive = function()
+        local opts = M.get_search_opts({
+          prompt_title = "Live Grep (Case Sensitive)",
+          additional_args = function()
+            return { "--case-sensitive" }
+          end
+        })
+        builtin.live_grep(opts)
+      end
+
+      M.search_files = function()
+        local opts = M.get_find_files_opts({
+          prompt_title = "Find Files"
+        })
+        builtin.find_files(opts)
+      end
+
+      M.search_word_under_cursor = function()
+        local opts = M.get_search_opts()
+        builtin.grep_string(opts)
+      end
+
+      -- Interactive configuration functions
+      M.configure_patterns = function()
+        vim.ui.select(
+          { "Include Directories", "Include Files", "Exclude Directories", "Exclude Files", "Show Current Config", "Save Configuration" },
+          { prompt = "Configure Telescope Patterns:" },
+          function(choice)
+            if not choice then return end
+            
+            if choice == "Include Directories" then
+              local current = table.concat(M.patterns.include_dirs, ", ")
+              vim.ui.input({
+                prompt = "Include directories (comma-separated, e.g., src,lib,test): ",
+                default = current
+              }, function(input)
+                if input then
+                  M.patterns.include_dirs = input ~= "" and vim.split(input, "%s*,%s*") or {}
+                  print("Include directories updated")
+                end
+              end)
+              
+            elseif choice == "Include Files" then
+              local current = table.concat(M.patterns.include_files, ", ")
+              vim.ui.input({
+                prompt = "Include file patterns (comma-separated, e.g., *.lua,*.js,*.tsx): ",
+                default = current
+              }, function(input)
+                if input then
+                  M.patterns.include_files = input ~= "" and vim.split(input, "%s*,%s*") or {}
+                  print("Include file patterns updated")
+                end
+              end)
+              
+            elseif choice == "Exclude Directories" then
+              local current = table.concat(M.patterns.exclude_dirs, ", ")
+              vim.ui.input({
+                prompt = "Exclude directories (comma-separated, e.g., node_modules,dist,build): ",
+                default = current
+              }, function(input)
+                if input then
+                  M.patterns.exclude_dirs = input ~= "" and vim.split(input, "%s*,%s*") or {}
+                  print("Exclude directories updated")
+                end
+              end)
+              
+            elseif choice == "Exclude Files" then
+              local current = table.concat(M.patterns.exclude_files, ", ")
+              vim.ui.input({
+                prompt = "Exclude file patterns (comma-separated, e.g., *.min.js,*.lock,*.test.js): ",
+                default = current
+              }, function(input)
+                if input then
+                  M.patterns.exclude_files = input ~= "" and vim.split(input, "%s*,%s*") or {}
+                  print("Exclude file patterns updated")
+                end
+              end)
+              
+            elseif choice == "Show Current Config" then
+              local lines = {
+                "Current Telescope Configuration:",
+                "",
+                "Include Directories: " .. table.concat(M.patterns.include_dirs, ", "),
+                "Include Files: " .. table.concat(M.patterns.include_files, ", "),
+                "Exclude Directories: " .. table.concat(M.patterns.exclude_dirs, ", "),
+                "Exclude Files: " .. table.concat(M.patterns.exclude_files, ", "),
+              }
+              vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+              
+            elseif choice == "Save Configuration" then
+              M.save_patterns()
+            end
+          end
+        )
+      end
 			local action_state = require("telescope.actions.state")
 			local actions = require("telescope.actions")
 
@@ -686,14 +910,14 @@ require("lazy").setup({
 				})
 			end
 
+			vim.keymap.set("n", "<leader>sc", M.configure_patterns, { desc = "[S]earch [C]onfig" })
 			vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 			vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
-			vim.keymap.set("n", "<leader>sf", search_files, { desc = "[S]earch [F]iles" })
+			vim.keymap.set("n", "<leader>sf", M.search_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
 			vim.keymap.set("n", "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
-			vim.keymap.set("n", "<leader>sg", search_incasesensitive, { desc = "[S]earch by [G]rep" })
-			vim.keymap.set("n", "<leader>sp", set_search_path, { desc = "[S]earch set [P]ath" })
-			vim.keymap.set("n", "<leader>sG", search_casesensitive, { desc = "[S]earch by [G]rep Case Sensitive" })
+			vim.keymap.set("n", "<leader>sg", M.search_incasesensitive, { desc = "[S]earch by [G]rep" })
+			vim.keymap.set("n", "<leader>sG", M.search_casesensitive, { desc = "[S]earch by [G]rep Case Sensitive" })
 			vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 			vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 			vim.keymap.set("n", "<leader>sb", search_buffers, { desc = "[S]earch [B]uffers" })
