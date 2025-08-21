@@ -173,8 +173,8 @@ vim.opt.splitbelow = true
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
 --  and `:help 'listchars'`
-vim.opt.list = true
-vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+vim.opt.list = false
+-- vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 
 -- Preview substitutions live, as you type!
 vim.opt.inccommand = "split"
@@ -282,6 +282,17 @@ vim.api.nvim_create_autocmd({ "FileType" }, {
 			vim.opt.foldmethod = "syntax"
 		end
 	end,
+})
+
+vim.diagnostic.config({
+	virtual_text = {
+		spacing = 2,
+		source = "if_many",
+	},
+	signs = true,
+	underline = true,
+	update_in_insert = false,
+	severity_sort = true,
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
